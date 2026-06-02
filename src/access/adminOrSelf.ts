@@ -1,24 +1,38 @@
-import type { Access } from 'payload'
-
+import type { Access, Where } from 'payload' // Import Where
+import type { User } from '@/payload-types'
 import { checkRole } from '@/access/utilities'
 
-/**
- * The ID of the document matches that of the user or the user is an admin.
- *
- * Useful to allow users to manage their own account, but not others.
- */
 export const adminOrSelf: Access = ({ req: { user } }) => {
-  if (user) {
-    if (checkRole(['admin'], user)) {
-      return true
-    }
+  if (!user) return false
 
-    return {
-      id: {
-        equals: user.id,
-      },
-    }
+  if (checkRole(['admin'], user)) {
+    return true
   }
 
-  return false
+  if (user.tenant) {
+    const tenantId = typeof user.tenant === 'object' ? user.tenant.id : user.tenant
+
+    // Explicitly typing this as 'Where' usually clears the "index signature" error
+    const query: Where = {
+      or: [
+        {
+          id: {
+            equals: user.id,
+          },
+        },
+        {
+          tenant: {
+            equals: tenantId,
+          },
+        },
+      ],
+    }
+    return query
+  }
+
+  return {
+    id: {
+      equals: user.id,
+    },
+  }
 }

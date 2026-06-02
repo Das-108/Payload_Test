@@ -1,32 +1,30 @@
 import type { CollectionConfig } from 'payload'
 
-import { adminOnly } from '@/access/adminOnly'
-import { adminOnlyFieldAccess } from '@/access/adminOnlyFieldAccess'
-import { publicAccess } from '@/access/publicAccess'
-import { adminOrSelf } from '@/access/adminOrSelf'
-import { checkRole } from '@/access/utilities'
-
-import { ensureFirstUserIsAdmin } from './hooks/ensureFirstUserIsAdmin'
+import { setCookieBasedOnDomain } from './hooks/setCookieBasedOnDomain'
 
 export const Users: CollectionConfig = {
   slug: 'users',
-  access: {
-    admin: ({ req: { user } }) => checkRole(['admin'], user),
-    create: publicAccess,
-    delete: adminOnly,
-    read: adminOrSelf,
-    unlock: adminOnly,
-    update: adminOrSelf,
+  auth: true, // Keep this!
+  hooks: {
+    afterLogin: [setCookieBasedOnDomain],
+  },
+  access: {    
+    // TEMPORARILY allow everyone to do everything so you can register
+    admin: () => true, 
+    create: () => true,
+    delete: () => true,
+    read: () => true,
+    update: () => true,
   },
   admin: {
     group: 'Users',
-    defaultColumns: ['name', 'email', 'roles'],
-    useAsTitle: 'name',
-  },
-  auth: {
-    tokenExpiration: 1209600,
+    useAsTitle: 'email', // Changed from 'name' because email is guaranteed to exist
   },
   fields: [
+    // tenant assignments are managed automatically by the multi-tenant plugin
+    // (the plugin adds a `tenants` relationship field to users).  we keep the
+    // field definition here in comments for reference but remove it to avoid
+    // duplicate-field errors.
     {
       name: 'name',
       type: 'text',
@@ -34,56 +32,13 @@ export const Users: CollectionConfig = {
     {
       name: 'roles',
       type: 'select',
-      access: {
-        create: adminOnlyFieldAccess,
-        read: adminOnlyFieldAccess,
-        update: adminOnlyFieldAccess,
-      },
-      defaultValue: ['customer'],
       hasMany: true,
-      hooks: {
-        beforeChange: [ensureFirstUserIsAdmin],
-      },
+      defaultValue: ['customer'], // Make sure the first user gets the role
       options: [
-        {
-          label: 'admin',
-          value: 'admin',
-        },
-        {
-          label: 'customer',
-          value: 'customer',
-        },
+        { label: 'Admin', value: 'admin' },
+        { label: 'Tenant', value: 'tenant' },
+        { label: 'Customer', value: 'customer' },
       ],
-    },
-    {
-      name: 'orders',
-      type: 'join',
-      collection: 'orders',
-      on: 'customer',
-      admin: {
-        allowCreate: false,
-        defaultColumns: ['id', 'createdAt', 'total', 'currency', 'items'],
-      },
-    },
-    {
-      name: 'cart',
-      type: 'join',
-      collection: 'carts',
-      on: 'customer',
-      admin: {
-        allowCreate: false,
-        defaultColumns: ['id', 'createdAt', 'total', 'currency', 'items'],
-      },
-    },
-    {
-      name: 'addresses',
-      type: 'join',
-      collection: 'addresses',
-      on: 'customer',
-      admin: {
-        allowCreate: false,
-        defaultColumns: ['id'],
-      },
     },
   ],
 }

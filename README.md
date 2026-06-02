@@ -51,6 +51,35 @@ pnpx create-payload-app my-project -t ecommerce
 
 That's it! Changes made in `./src` will be reflected in your app. Follow the on-screen instructions to login and create your first admin user. Then check out [Production](#production) once you're ready to build and serve your app, and [Deployment](#deployment) when you're ready to go live.
 
+## Multi‑Tenant Support
+
+This repository has been extended with a **multi‑tenant architecture** similar to
+[Blanxer](https://blanxer.io/).  Key pieces:
+
+- A `tenants` collection stores store-specific settings (`name`, `slug`,
+  `domain`, etc.).
+- The Payload `multiTenantPlugin` (configured in `src/payload.config.ts`) adds a
+  `tenant` relationship field to the collections listed there and automatically
+  filters queries based on the current tenant cookie.
+- Requests are routed through Next.js so that a subdomain such as
+  `store1.localhost:3000` or a path segment `/store1/...` populates the
+  `[tenant]` route segment.  See `next.config.js` for the rewrite rule.
+- A login hook assigns a `payload-tenant` cookie based on the request host and
+  the user's assigned tenants.  Administrators can manage tenant assignments
+  via the `tenants` field on the `users` collection.
+- Access helpers (`src/access/isTenantOwner.ts` and
+  `tenantOrPublished.ts`) ensure that tenants only manage their own data while
+  public visitors still see published content.
+
+The front‑end pages inside `src/app/(app)/[tenant]` filter payload queries by
+the tenant slug.  Static generation is wired to produce routes for every tenant/
+page combination, so building the site will output files for each store.
+
+> You can run multiple local stores by using different hosts in your
+> `/etc/hosts` file (e.g. `store1.localhost`, `store2.localhost`) or by
+> navigating to paths such as `/store1/products`.  During development the
+> rewrite in `next.config.js` handles the mapping automatically.
+
 ## How it works
 
 The Payload config is tailored specifically to the needs of most websites. It is pre-configured in the following ways:

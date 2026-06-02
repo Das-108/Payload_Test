@@ -1,16 +1,11 @@
 import type { Access } from 'payload'
-
 import { checkRole } from '@/access/utilities'
 
 /**
- * Atomic access checker that verifies if the user has the admin role.
- *
- * @returns true if user is an admin, false otherwise
+ * Global access checker for the System Owner (You).
+ * This replaces the "isSuperAdmin" logic from the video.
  */
 export const isAdmin: Access = ({ req }) => {
-  if (req.user) {
-    return checkRole(['admin'], req.user)
-  }
-
-  return false
+  // Only users with the 'admin' role get global power
+  return Boolean(req.user && checkRole(['admin'], req.user))
 }

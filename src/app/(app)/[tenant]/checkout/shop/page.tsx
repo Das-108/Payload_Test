@@ -12,10 +12,12 @@ export const metadata = {
 type SearchParams = { [key: string]: string | string[] | undefined }
 
 type Props = {
+  params: Promise<{ tenant: string }>
   searchParams: Promise<SearchParams>
 }
 
-export default async function ShopPage({ searchParams }: Props) {
+export default async function ShopPage({ params, searchParams }: Props) {
+  const { tenant } = await params
   const { q: searchValue, sort, category } = await searchParams
   const payload = await getPayload({ config: configPromise })
 
@@ -31,46 +33,16 @@ export default async function ShopPage({ searchParams }: Props) {
       priceInUSD: true,
     },
     ...(sort ? { sort } : { sort: 'title' }),
-    ...(searchValue || category
-      ? {
-          where: {
-            and: [
-              {
-                _status: {
-                  equals: 'published',
-                },
-              },
-              ...(searchValue
-                ? [
-                    {
-                      or: [
-                        {
-                          title: {
-                            like: searchValue,
-                          },
-                        },
-                        {
-                          description: {
-                            like: searchValue,
-                          },
-                        },
-                      ],
-                    },
-                  ]
-                : []),
-              ...(category
-                ? [
-                    {
-                      categories: {
-                        contains: category,
-                      },
-                    },
-                  ]
-                : []),
-            ],
-          },
-        }
-      : {}),
+    where: {
+      and: [
+        { 'tenant.slug': { equals: tenant } },
+        ...(searchValue ? [{ or: [
+          { title: { like: searchValue } },
+          { description: { like: searchValue } },
+        ]}] : []),
+        ...(category ? [{ categories: { contains: category } }] : []),
+      ],
+    },
   })
 
   const resultsText = products.docs.length > 1 ? 'results' : 'result'
@@ -85,16 +57,14 @@ export default async function ShopPage({ searchParams }: Props) {
           <span className="font-bold">&quot;{searchValue}&quot;</span>
         </p>
       ) : null}
-
       {!searchValue && products.docs?.length === 0 && (
         <p className="mb-4">No products found. Please try different filters.</p>
       )}
-
       {products?.docs.length > 0 ? (
         <Grid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.docs.map((product) => {
-            return <ProductGridItem key={product.id} product={product} />
-          })}
+          {products.docs.map((product) => (
+            <ProductGridItem key={product.id} product={product} tenantSlug={tenant} />
+          ))}
         </Grid>
       ) : null}
     </div>
