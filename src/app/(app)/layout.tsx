@@ -6,6 +6,7 @@ import { AdminBar } from '@/components/AdminBar'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 import { Providers } from '@/providers'
 import { InitTheme } from '@/providers/Theme/InitTheme'
+import "@/app/(app)/globals.css"
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   return (

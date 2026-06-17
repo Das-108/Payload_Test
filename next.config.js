@@ -14,20 +14,6 @@ const nextConfig = {
     ],
   },
   reactStrictMode: true,
-  async rewrites() {
-    return [
-      {
-        source: '/:path((?!api|_next|favicon\\.ico).*)',
-        has: [
-          {
-            type: 'host',
-            value: '(?<tenant>[^.]+)\\.localhost',
-          },
-        ],
-        destination: '/:tenant/:path*',
-      },
-    ]
-  },
 }
 
 export default withPayload(nextConfig, { devBundleServerPackages: false })

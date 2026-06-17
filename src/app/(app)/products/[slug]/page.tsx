@@ -1,30 +1,41 @@
-import type { Media, Product, Tenant } from '@/payload-types'
-import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { GridTileImage } from '@/components/Grid/tile'
 import { Gallery } from '@/components/product/Gallery'
 import { ProductDescription } from '@/components/product/ProductDescription'
-import configPromise from '@payload-config'
-import { getPayload } from 'payload'
-import { draftMode } from 'next/headers'
-import Link from 'next/link'
-import { notFound } from 'next/navigation'
-import React, { Suspense } from 'react'
 import { Button } from '@/components/ui/button'
+import type { Media, Product } from '@/payload-types'
+import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import configPromise from '@payload-config'
 import { ChevronLeftIcon } from 'lucide-react'
 import { Metadata } from 'next'
+import { draftMode, headers } from 'next/headers'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { getPayload } from 'payload'
+import React, { Suspense } from 'react'
 
 type Args = {
   params: Promise<{
-    tenant: string
     slug: string
   }>
 }
 
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
-  const { slug, tenant } = await params
-  const product = await queryProductBySlug({ slug, tenant })
+  const { slug } = await params
+  const host = (await headers()).get('host') || ''
+  const tenant = await fetchTenantByDomain(host)
 
-  if (!product) return {}
+  if (!tenant) {
+    return {}
+  }
+
+  const product = await queryProductBySlug({
+    slug,
+    tenantId: tenant.id,
+  })
+
+  if (!product) {
+    return {}
+  }
 
   const gallery = product.gallery?.filter((item) => typeof item.image === 'object') || []
   const metaImage = typeof product.meta?.image === 'object' ? product.meta?.image : undefined
@@ -54,10 +65,24 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Args) {
-  const { slug, tenant: tenantSlug } = await params
-  const product = await queryProductBySlug({ slug, tenant: tenantSlug })
+  const { slug } = await params
+  const host = (await headers()).get('host') || ''
+  const tenant = await fetchTenantByDomain(host)
+  console.log('🔥 PRODUCT PAGE ROUTE HIT')
+  if (!tenant) {
+    return notFound()
+  }
 
-  if (!product) return notFound()
+  console.log(tenant)
+
+  const product = await queryProductBySlug({
+    slug,
+    tenantId: tenant.id,
+  })
+
+  if (!product) {
+    return notFound()
+  }
 
   const gallery =
     product.gallery
@@ -67,13 +92,7 @@ export default async function ProductPage({ params }: Args) {
         image: item.image as Media,
       })) || []
 
-  const hasStock = product.enableVariants
-    ? product?.variants?.docs?.some((variant) => {
-        if (typeof variant !== 'object') return false
-        return (variant.inventory ?? 0) > 0
-      })
-    : (product.inventory ?? 0) > 0
-
+  const hasStock = (product.inventory ?? 0) > 0
   let price = product.priceInUSD
 
   const productJsonLd = {
@@ -103,7 +122,7 @@ export default async function ProductPage({ params }: Args) {
       />
       <div className="container pt-8 pb-8">
         <Button asChild variant="ghost" className="mb-4">
-          <Link href={`/${tenantSlug}/products`}>
+          <Link href={`/products`}>
             <ChevronLeftIcon className="mr-2 h-4 w-4" />
             Back to Shop
           </Link>
@@ -125,18 +144,16 @@ export default async function ProductPage({ params }: Args) {
         </div>
       </div>
 
-      {product.layout?.length ? <RenderBlocks blocks={product.layout} /> : null}
-
       {relatedProducts.length > 0 && (
         <div className="container mt-12">
-          <RelatedProducts products={relatedProducts as Product[]} tenantSlug={tenantSlug} />
+          <RelatedProducts products={relatedProducts as Product[]} />
         </div>
       )}
     </React.Fragment>
   )
 }
 
-function RelatedProducts({ products, tenantSlug }: { products: Product[]; tenantSlug: string }) {
+function RelatedProducts({ products }: { products: Product[] }) {
   return (
     <div className="py-8 border-t">
       <h2 className="mb-6 text-2xl font-bold">Related Products</h2>
@@ -146,8 +163,7 @@ function RelatedProducts({ products, tenantSlug }: { products: Product[]; tenant
             className="aspect-square w-full flex-none min-[475px]:w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5"
             key={product.id}
           >
-            {/* Added tenantSlug to the link path */}
-            <Link className="relative h-full w-full block" href={`/${tenantSlug}/products/${product.slug}`}>
+            <Link className="relative h-full w-full block" href={`/products/${product.slug}`}>
               <GridTileImage
                 label={{
                   amount: product.priceInUSD!,
@@ -163,9 +179,19 @@ function RelatedProducts({ products, tenantSlug }: { products: Product[]; tenant
   )
 }
 
-const queryProductBySlug = async ({ slug, tenant }: { slug: string; tenant: string }) => {
+const queryProductBySlug = async ({
+  slug,
+  tenantId,
+}: {
+  slug: string
+  tenantId: string | number
+}) => {
   const { isEnabled: draft } = await draftMode()
   const payload = await getPayload({ config: configPromise })
+
+  console.log(
+    `🔍 [DB QUERY] Searching for product slug: "${slug}" linked to tenantId: "${tenantId}" (Draft Mode: ${draft})`,
+  )
 
   const result = await payload.find({
     collection: 'products',
@@ -180,37 +206,24 @@ const queryProductBySlug = async ({ slug, tenant }: { slug: string; tenant: stri
           slug: { equals: slug },
         },
         {
-          'tenant.slug': { equals: tenant },
+          tenant: { equals: tenantId },
         },
         ...(draft ? [] : [{ _status: { equals: 'published' } }]),
       ],
     },
   })
 
-  return result.docs?.[0] || null
+  if (!result.docs || result.docs.length === 0) {
+    console.log(`❌ [DB QUERY] No product matched criteria for slug: "${slug}"`)
+    return null
+  }
+
+  console.log(
+    `✅ [DB QUERY] Found product successfully: "${result.docs[0].title}" (ID: ${result.docs[0].id})`,
+  )
+  return result.docs[0]
 }
 
 export async function generateStaticParams() {
-  const payload = await getPayload({ config: configPromise })
-
-  const products = await payload.find({
-    collection: 'products',
-    draft: false,
-    limit: 1000,
-    pagination: false,
-    // Ensure we get the tenant slug for the path
-    depth: 1, 
-  })
-
-  return products.docs.map((product) => {
-    // Handling both populated and ID-only tenant scenarios
-    const tenantSlug = typeof product.tenant === 'object' 
-        ? (product.tenant as Tenant).slug 
-        : null
-
-    return {
-      tenant: tenantSlug,
-      slug: product.slug,
-    }
-  }).filter(item => item.tenant && item.slug) // Only generate valid combos
-} 
+  return []
+}

@@ -1,34 +1,3 @@
-// import configPromise from '@payload-config'
-// import { getPayload } from 'payload'
-
-// export async function fetchTenantByDomain(host: string, fallbackSlug?: string) {
-//   const payload = await getPayload({ config: configPromise })
-  
-//   const domain = host.split(':')[0].toLowerCase()
-//   const slugFromHost = domain.split('.')[0]
-//   const slugToMatch = fallbackSlug || slugFromHost
-
-//   console.log(`🔍 Tenant Lookup -> Host: ${host}, Domain: ${domain}, Slug: ${slugToMatch}`)
-
-//   // 1. Try Domain Match
-//   const byDomain = await payload.find({
-//     collection: 'tenants',
-//     where: { domain: { equals: domain } },
-//   })
-//   if (byDomain.docs.length > 0) return byDomain.docs[0]
-
-//   // 2. Try Slug Match
-//   const bySlug = await payload.find({
-//     collection: 'tenants',
-//     where: { slug: { equals: slugToMatch } },
-//   })
-  
-//   if (bySlug.docs.length > 0) return bySlug.docs[0]
-
-//   console.warn(`⚠️ No tenant found for ${domain} or ${slugToMatch}`)
-//   return null
-// }
-
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 
@@ -46,7 +15,7 @@ export async function fetchTenantByDomain(host: string, urlParamSlug?: string) {
     detectedSlug = domainParts[0]
   }
 
-  // Fallback pattern: If no subdomain exists, fall back to check if a URL path parameter exists
+  // Fallback pattern: If no subdomain exists, fall back to check if a URL path parameter exists  
   const finalSlugToMatch = detectedSlug || urlParamSlug
 
   console.log(`🔍 Tenant Extraction Router -> Host: ${host} | Extracted Subdomain Slug: ${detectedSlug} | URL Param: ${urlParamSlug}`)

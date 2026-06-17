@@ -291,10 +291,6 @@ export interface Page {
     image?: (number | null) | Media;
     description?: string | null;
   };
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
   slug: string;
   updatedAt: string;
   createdAt: string;
@@ -455,6 +451,14 @@ export interface Category {
 export interface Product {
   id: number;
   tenant?: (number | null) | Tenant;
+  meta?: {
+    title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+    description?: string | null;
+  };
   title: string;
   description?: {
     root: {
@@ -472,6 +476,7 @@ export interface Product {
     [k: string]: unknown;
   } | null;
   priceInUSD: number;
+  inventory: number;
   gallery?:
     | {
         image: number | Media;
@@ -480,10 +485,6 @@ export interface Product {
     | null;
   categories?: (number | Category)[] | null;
   relatedProducts?: (number | Product)[] | null;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
   slug: string;
   updatedAt: string;
   createdAt: string;
@@ -1030,7 +1031,6 @@ export interface PagesSelect<T extends boolean = true> {
         image?: T;
         description?: T;
       };
-  generateSlug?: T;
   slug?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1205,9 +1205,17 @@ export interface TenantsSelect<T extends boolean = true> {
  */
 export interface ProductsSelect<T extends boolean = true> {
   tenant?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        image?: T;
+        description?: T;
+      };
   title?: T;
   description?: T;
   priceInUSD?: T;
+  inventory?: T;
   gallery?:
     | T
     | {
@@ -1216,7 +1224,6 @@ export interface ProductsSelect<T extends boolean = true> {
       };
   categories?: T;
   relatedProducts?: T;
-  generateSlug?: T;
   slug?: T;
   updatedAt?: T;
   createdAt?: T;

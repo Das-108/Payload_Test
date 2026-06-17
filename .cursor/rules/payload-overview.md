@@ -95,7 +95,7 @@ export default async function Page() {
 
 | Task                  | Solution                           |
 | --------------------- | ---------------------------------- |
-| Auto-generate slugs   | `slugField()`                      |
+| Auto-generate slugs   | `tenantSlug()`                |
 | Restrict by user      | Access control with query          |
 | Local API user ops    | `user` + `overrideAccess: false`   |
 | Draft/publish         | `versions: { drafts: true }`       |
