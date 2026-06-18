@@ -36,10 +36,21 @@ export const CreateAccountForm: React.FC = () => {
   const password = useRef({})
   password.current = watch('password', '')
 
+
   const onSubmit = useCallback(
     async (data: FormData) => {
+      setError(null) // Clear any previous errors
+
+      // 🟢 STRIP OUT UNWANTED FIELDS: Extract email and password, ignore passwordConfirm!
+      const { email, password } = data
+      const cleanedPayload = {
+        email,
+        password,
+        roles: ['customer'] // Force assign customer role on creation safely
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/users`, {
-        body: JSON.stringify(data),
+        body: JSON.stringify(cleanedPayload), // 🟢 Pass the cleaned flat payload object
         headers: {
           'Content-Type': 'application/json',
         },
@@ -47,7 +58,8 @@ export const CreateAccountForm: React.FC = () => {
       })
 
       if (!response.ok) {
-        const message = response.statusText || 'There was an error creating the account.'
+        const errorData = await response.json().catch(() => ({}))
+        const message = errorData.errors?.[0]?.message || response.statusText || 'There was an error creating the account.'
         setError(message)
         return
       }
@@ -59,13 +71,14 @@ export const CreateAccountForm: React.FC = () => {
       }, 1000)
 
       try {
-        await login(data)
+        // Authenticate the user right away using the original email/password credentials object
+        await login({ email, password })
         clearTimeout(timer)
         if (redirect) router.push(redirect)
         else router.push(`/account?success=${encodeURIComponent('Account created successfully')}`)
       } catch (_) {
         clearTimeout(timer)
-        setError('There was an error with the credentials provided. Please try again.')
+        setError('There was an error logging in with your new credentials. Please try again.')
       }
     },
     [login, router, searchParams],

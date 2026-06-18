@@ -13,6 +13,12 @@ import {
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
+import { Carts } from '@/collections/Carts'
+import { getCartHandler } from './endpoints/cart/get-cart'
+import { addItemHandler } from './endpoints/cart/add-item'
+import { removeItemHandler } from './endpoints/cart/remove-item'
+import { updateItemHandler } from './endpoints/cart/update-item'
+import { clearCartHandler } from './endpoints/cart/clear-cart'
 
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
 import { Categories } from '@/collections/Categories'
@@ -24,14 +30,15 @@ import { Tenants } from './collections/Tenant'
 import { Addresses } from '@/collections/Addresses'
 import { Header } from '@/collections/Header'
 import { Footer } from '@/collections/Footer'
+import { Orders } from '@/collections/Orders'
 
 import { getServerSideURL } from './utilities/getURL'
 import { checkRole } from '@/access/utilities'
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder'
+import Order from './app/(app)/(account)/orders/[id]/page'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
-
 
 export default buildConfig({
   serverURL: getServerSideURL(),
@@ -53,7 +60,8 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Pages, Categories, Media, Tenants, Products, Addresses, Header, Footer],
+  // 🟢 FIX 1: Added Carts here to register the collection configuration globally in Payload
+  collections: [Users, Pages, Categories, Media, Tenants, Products, Addresses, Header, Footer, Carts, Orders],
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
@@ -71,6 +79,33 @@ export default buildConfig({
       EXPERIMENTAL_TableFeature(),
     ],
   }),
+  endpoints: [
+    {
+      path: '/cart',
+      method: 'get',
+      handler: getCartHandler,
+    },
+    {
+      path: '/cart/add',
+      method: 'post',
+      handler: addItemHandler,
+    },
+    {
+      path: '/cart/remove',
+      method: 'post',
+      handler: removeItemHandler,
+    },
+    {
+      path: '/cart/update',
+      method: 'post',
+      handler: updateItemHandler,
+    },
+    {
+      path: '/cart/clear',
+      method: 'delete',
+      handler: clearCartHandler,
+    },
+  ],
   plugins: [
     formBuilderPlugin({
       fields: { payment: false },
@@ -84,6 +119,8 @@ export default buildConfig({
         addresses: {},
         header: {},
         footer: {},
+        carts: {},
+        orders: {},
       },
       tenantField: {
         name: 'tenant',

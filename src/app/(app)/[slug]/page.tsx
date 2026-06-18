@@ -5,6 +5,7 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { RenderBlocks } from '@/blocks/RenderBlocks'
+import { RenderHero } from '@/heros/RenderHero'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -39,6 +40,7 @@ export default async function CatchAllCMSPage({ params }: Props) {
   return (
     <main>
       <h1>{page.title}</h1>
+        {page.hero && <RenderHero {...page.hero} />}
       {page.layout ? <RenderBlocks blocks={page.layout} /> : null}
     </main>
   )
