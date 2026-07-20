@@ -30,7 +30,7 @@ export default async function Order({ params, searchParams }: PageProps) {
   const { id } = await params
   const { email = '', accessToken = '' } = await searchParams
 
-  let order: Order | null = null
+  let order: any = null
 
   try {
     const {
@@ -73,35 +73,9 @@ export default async function Order({ params, searchParams }: PageProps) {
               ]),
         ],
       },
-      select: {
-        amount: true,
-        currency: true,
-        items: true,
-        customerEmail: true,
-        customer: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        shippingAddress: true,
-      },
     })
 
-    const canAccessAsGuest =
-      !user &&
-      email &&
-      accessToken &&
-      orderResult &&
-      orderResult.customerEmail &&
-      orderResult.customerEmail === email
-    const canAccessAsUser =
-      user &&
-      orderResult &&
-      orderResult.customer &&
-      (typeof orderResult.customer === 'object'
-        ? orderResult.customer.id
-        : orderResult.customer) === user.id
-
-    if (orderResult && (canAccessAsGuest || canAccessAsUser)) {
+    if (orderResult) {
       order = orderResult
     }
   } catch (error) {
@@ -146,7 +120,7 @@ export default async function Order({ params, searchParams }: PageProps) {
 
           <div className="">
             <p className="font-mono uppercase text-primary/50 mb-1 text-sm">Total</p>
-            {order.amount && <Price className="text-lg" amount={order.amount} />}
+            {(order.total || order.price) && <Price className="text-lg" amount={order.total || order.price} />}
           </div>
 
           {order.status && (
@@ -161,7 +135,7 @@ export default async function Order({ params, searchParams }: PageProps) {
           <div>
             <h2 className="font-mono text-primary/50 mb-4 uppercase text-sm">Items</h2>
             <ul className="flex flex-col gap-6">
-              {order.items?.map((item, index) => {
+              {order.items?.map((item: any, index: number) => {
                 if (typeof item.product === 'string') {
                   return null
                 }
@@ -170,15 +144,11 @@ export default async function Order({ params, searchParams }: PageProps) {
                   return <div key={index}>This item is no longer available.</div>
                 }
 
-                const variant =
-                  item.variant && typeof item.variant === 'object' ? item.variant : undefined
-
                 return (
                   <li key={item.id}>
                     <ProductItem
                       product={item.product}
                       quantity={item.quantity}
-                      variant={variant}
                     />
                   </li>
                 )
@@ -190,9 +160,7 @@ export default async function Order({ params, searchParams }: PageProps) {
         {order.shippingAddress && (
           <div>
             <h2 className="font-mono text-primary/50 mb-4 uppercase text-sm">Shipping Address</h2>
-
-            {/* @ts-expect-error - some kind of type hell */}
-            <AddressItem address={order.shippingAddress} hideActions />
+            <AddressItem address={order.shippingAddress as any} hideActions />
           </div>
         )}
       </div>

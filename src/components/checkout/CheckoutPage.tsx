@@ -14,17 +14,18 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import React, { Suspense, useCallback, useEffect, useState } from 'react'
 
-import { cssVariables } from '@/cssVariables'
-import { CheckoutForm } from '@/components/forms/CheckoutForm'
-import { useAddresses, useCart, usePayments } from '@payloadcms/plugin-ecommerce/client/react'
-import { CheckoutAddresses } from '@/components/checkout/CheckoutAddresses'
-import { CreateAddressModal } from '@/components/addresses/CreateAddressModal'
-import { Address } from '@/payload-types'
-import { Checkbox } from '@/components/ui/checkbox'
 import { AddressItem } from '@/components/addresses/AddressItem'
+import { CreateAddressModal } from '@/components/addresses/CreateAddressModal'
+import { CheckoutAddresses } from '@/components/checkout/CheckoutAddresses'
+import { CheckoutForm } from '@/components/forms/CheckoutForm'
 import { FormItem } from '@/components/forms/FormItem'
-import { toast } from 'sonner'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
+import { Checkbox } from '@/components/ui/checkbox'
+import { cssVariables } from '@/cssVariables'
+import { Address } from '@/payload-types'
+import { useCart } from '@/providers/CartProvider'
+import { useAddresses, usePayments } from '@payloadcms/plugin-ecommerce/client/react'
+import { toast } from 'sonner'
 
 const apiKey = `${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}`
 const stripe = loadStripe(apiKey)
@@ -35,9 +36,6 @@ export const CheckoutPage: React.FC = () => {
   const { cart } = useCart()
   const [error, setError] = useState<null | string>(null)
   const { theme } = useTheme()
-  /**
-   * State to manage the email input for guest checkout.
-   */
   const [email, setEmail] = useState('')
   const [emailEditable, setEmailEditable] = useState(true)
   const [paymentData, setPaymentData] = useState<null | Record<string, unknown>>(null)
@@ -54,7 +52,6 @@ export const CheckoutPage: React.FC = () => {
     (email || user) && billingAddress && (billingAddressSameAsShipping || shippingAddress),
   )
 
-  // On initial load wait for addresses to be loaded and check to see if we can prefill a default one
   useEffect(() => {
     if (!shippingAddress) {
       if (addresses && addresses.length > 0) {
@@ -299,8 +296,7 @@ export const CheckoutPage: React.FC = () => {
         )}
 
         <Suspense fallback={<React.Fragment />}>
-          {/* @ts-ignore */}
-          {paymentData && paymentData?.['clientSecret'] && (
+          {Boolean(paymentData && paymentData?.['clientSecret']) && (
             <div className="pb-16">
               <h2 className="font-medium text-3xl">Payment</h2>
               {error && <p>{`Error: ${error}`}</p>}
@@ -327,7 +323,7 @@ export const CheckoutPage: React.FC = () => {
                       spacingUnit: '4px',
                     },
                   },
-                  clientSecret: paymentData['clientSecret'] as string,
+                  clientSecret: (paymentData?.['clientSecret'] ?? '') as string,
                 }}
                 stripe={stripe}
               >
@@ -354,44 +350,14 @@ export const CheckoutPage: React.FC = () => {
       {!cartIsEmpty && (
         <div className="basis-full lg:basis-1/3 lg:pl-8 p-8 border-none bg-primary/5 flex flex-col gap-8 rounded-lg">
           <h2 className="text-3xl font-medium">Your cart</h2>
-          {cart?.items?.map((item, index) => {
-            if (typeof item.product === 'object' && item.product) {
-              const {
-                product,
-                product: { id, meta, title, gallery },
-                quantity,
-                variant,
-              } = item
+          {cart?.items?.map((item: any, index: number) => {
+            if (item.product && typeof item.product === 'object') {
+              const { product, quantity } = item
+              const title = product.title
+              const image = product.gallery?.[0]?.image || product.meta?.image
+              const price = product.price || product.basePrice
 
               if (!quantity) return null
-
-              let image = gallery?.[0]?.image || meta?.image
-              let price = product?.priceInUSD
-
-              const isVariant = Boolean(variant) && typeof variant === 'object'
-
-              if (isVariant) {
-                price = variant?.priceInUSD
-
-                const imageVariant = product.gallery?.find((item) => {
-                  if (!item.variantOption) return false
-                  const variantOptionID =
-                    typeof item.variantOption === 'object'
-                      ? item.variantOption.id
-                      : item.variantOption
-
-                  const hasMatch = variant?.options?.some((option) => {
-                    if (typeof option === 'object') return option.id === variantOptionID
-                    else return option === variantOptionID
-                  })
-
-                  return hasMatch
-                })
-
-                if (imageVariant && typeof imageVariant.image !== 'string') {
-                  image = imageVariant.image
-                }
-              }
 
               return (
                 <div className="flex items-start gap-4" key={index}>
@@ -405,16 +371,6 @@ export const CheckoutPage: React.FC = () => {
                   <div className="flex grow justify-between items-center">
                     <div className="flex flex-col gap-1">
                       <p className="font-medium text-lg">{title}</p>
-                      {variant && typeof variant === 'object' && (
-                        <p className="text-sm font-mono text-primary/50 tracking-widest">
-                          {variant.options
-                            ?.map((option) => {
-                              if (typeof option === 'object') return option.label
-                              return null
-                            })
-                            .join(', ')}
-                        </p>
-                      )}
                       <div>
                         {'x'}
                         {quantity}

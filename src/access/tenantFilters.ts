@@ -1,4 +1,4 @@
-import { Access } from 'payload'
+import { Access, Where } from 'payload'
 import { checkRole } from './utilities'
 
 /**
@@ -14,22 +14,36 @@ export const tenantIsolatedAccess = (): Access => {
     // 2. Global Platform Admins ('admin') bypass isolation filters completely
     if (checkRole(['admin'], user)) return true
 
-    // Resolve active tenant boundary mapping securely
-    const tenantId = typeof user.tenant === 'object' ? user.tenant?.id : user.tenant
+    // Resolve active tenant boundary mapping securely by checking the multi-tenant layout 'tenants' array
+    // Adapts to both array of IDs or an array of populated tenant objects
+    let tenantId: string | number | null = null
+
+    if (user.tenants && Array.isArray(user.tenants) && user.tenants.length > 0) {
+      const primaryTenantObj = user.tenants[0]
+
+      if (primaryTenantObj && typeof primaryTenantObj === 'object') {
+        const tenantReference = 'tenant' in primaryTenantObj ? primaryTenantObj.tenant : null
+        tenantId = typeof tenantReference === 'object' ? tenantReference?.id ?? null : tenantReference
+      } else {
+        tenantId = primaryTenantObj
+      }
+    }
+
     if (!tenantId) return false
 
     // 3. Store Managers ('tenant') can access records belonging strictly to their store
     if (checkRole(['tenant'], user)) {
-      return {
+      const managerFilter: Where = {
         tenant: {
           equals: tenantId,
         },
       }
+      return managerFilter
     }
 
     // 4. Standard Customers ('customer') can only view or manage their own records inside their store
     if (checkRole(['customer'], user)) {
-      return {
+      const customerFilter: Where = {
         and: [
           {
             tenant: {
@@ -43,6 +57,7 @@ export const tenantIsolatedAccess = (): Access => {
           },
         ],
       }
+      return customerFilter
     }
 
     return false

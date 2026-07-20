@@ -10,14 +10,6 @@ type Props = { item: Product; priority?: boolean; size: 'full' | 'half' }
 export const ThreeItemGridItem: React.FC<Props> = ({ item, size }) => {
   let price = item.priceInUSD
 
-  if (item.enableVariants && item.variants?.docs?.length) {
-    const variant = item.variants.docs[0]
-
-    if (variant && typeof variant === 'object' && variant.priceInUSD) {
-      price = variant.priceInUSD
-    }
-  }
-
   return (
     <div
       className={size === 'full' ? 'md:col-span-4 md:row-span-2' : 'md:col-span-2 md:row-span-1'}

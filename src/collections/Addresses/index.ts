@@ -1,27 +1,24 @@
-// import type { CollectionConfig } from 'payload'
+import type { Access, CollectionConfig, PayloadRequest, Where } from 'payload'
 
-// export const Addresses: CollectionConfig = {
-//   slug: 'addresses',
-//   access: {
-//     read: () => true,
-//     create: () => true,
-//     update: () => true,
-//     delete: () => true,
-//   },
-//   fields: [
-//     { name: 'name', type: 'text' },
-//     { name: 'line1', type: 'text', label: 'Address Line 1' },
-//     { name: 'line2', type: 'text', label: 'Address Line 2' },
-//     { name: 'city', type: 'text' },
-//     { name: 'state', type: 'text' },
-//     { name: 'zip', type: 'text' },
-//     { name: 'country', type: 'text' },
-//     { name: 'user', type: 'relationship', relationTo: 'users' },
-//   ],
-// }
+const isAddressOwner: Access = async ({ req, id }) => {
+  if (!req.user) return false
+  if (req.user.roles?.includes('admin')) return true
 
-import type { CollectionConfig } from 'payload'
-import { tenantIsolatedAccess } from '../../access/tenantFilters'
+  if (!id) return true
+
+  const address = await req.payload.findByID({
+    collection: 'addresses',
+    id: id as string | number,
+    depth: 0,
+    overrideAccess: false,
+    user: req.user,
+    req: req as PayloadRequest,
+  })
+
+  const ownerId = typeof address?.user === 'object' ? address.user?.id : address?.user
+
+  return ownerId === req.user.id
+}
 
 export const Addresses: CollectionConfig = {
   slug: 'addresses',
@@ -30,27 +27,75 @@ export const Addresses: CollectionConfig = {
     defaultColumns: ['name', 'city', 'user'],
   },
   access: {
-    // Both reading and modifying addresses are now strictly gated by role and store context
-    read: tenantIsolatedAccess(),
-    create: tenantIsolatedAccess(),
-    update: tenantIsolatedAccess(),
-    delete: tenantIsolatedAccess(),
+    read: ({ req }) => {
+      if (!req.user) return false
+
+      if (req.user.roles?.includes('admin')) return true
+
+      return {
+        user: {
+          equals: req.user.id,
+        },
+      }
+    },
+
+    create: ({ req }) => !!req.user,
+
+    update: ({ req }) => {
+      if (!req.user) return false
+
+      if (req.user.roles?.includes('admin')) return true
+
+      return {
+        user: {
+          equals: req.user.id,
+        },
+      }
+    },
+
+    delete: ({ req }) => {
+      if (!req.user) return false
+
+      if (req.user.roles?.includes('admin')) return true
+
+      return {
+        user: {
+          equals: req.user.id,
+        },
+      }
+    },
+  },
+  hooks: {
+    beforeValidate: [
+      async ({ data, req }) => {
+        console.log('[addresses-debug] beforeValidate', {
+          userId: req.user?.id,
+          data,
+        })
+
+        if (!req.user) return data
+
+        return {
+          ...data,
+          user: req.user.id,
+        }
+      },
+    ],
   },
   fields: [
+    {
+      name: 'user',
+      type: 'relationship',
+      relationTo: 'users',
+      defaultValue: ({ req }) => req.user?.id,
+      admin: {
+        description: 'The account that owns this address',
+      },
+    },
     { name: 'name', type: 'text', required: true },
     { name: 'line1', type: 'text', label: 'Address Line 1', required: true },
     { name: 'line2', type: 'text', label: 'Address Line 2' },
     { name: 'city', type: 'text', required: true },
     { name: 'state', type: 'text' },
-    { name: 'zip', type: 'text', label: 'Postal / ZIP Code' },
-    { name: 'country', type: 'text', required: true },
-    { 
-      name: 'user', 
-      type: 'relationship', 
-      relationTo: 'users',
-      required: true,
-      index: true,
-    },
-    // The 'tenant' field mapping is automatically injected here by the multiTenantPlugin
   ],
 }

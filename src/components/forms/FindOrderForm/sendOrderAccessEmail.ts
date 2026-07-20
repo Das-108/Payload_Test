@@ -30,7 +30,8 @@ export async function sendOrderAccessEmail({
       depth: 0,
     })
 
-    const order = orders[0]
+    // Replace lines 33-40 with:
+    const order = orders[0] as any
 
     if (!order || !order.accessToken) {
       return { success: true }

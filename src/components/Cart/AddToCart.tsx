@@ -3,41 +3,30 @@
 import { Button } from '@/components/ui/button'
 import type { Product } from '@/payload-types'
 
-import { useCart } from '@payloadcms/plugin-ecommerce/client/react'
+import { useCart } from '@/providers/CartProvider'
 import clsx from 'clsx'
 import React, { useCallback, useMemo } from 'react'
-import { toast } from 'sonner'
+
 type Props = {
   product: Product
 }
 
 export function AddToCart({ product }: Props) {
-  const { addItem, cart, isLoading } = useCart()
+  const { addItem, isLoading } = useCart()
 
   const addToCart = useCallback(
     async (e: React.FormEvent<HTMLButtonElement>) => {
       e.preventDefault()
 
-      console.log('🔥 ADD TO CART CLICKED')
-
-      try {
-        const result = await addItem({
-          product: product.id,
-        })
-
-        console.log(result)
-
-        toast.success('Item added to cart.')
-      } catch (err) {
-        console.error(err)
-      }
+      if (!product.id) return
+      await addItem({ product: product.id })
     },
-    [addItem, product],
+    [addItem, product.id],
   )
 
   const disabled = useMemo(() => {
-    return (product.inventory ?? 0) <= 0
-  }, [product.inventory])
+    return (product.inventory ?? 0) <= 0 || isLoading
+  }, [isLoading, product.inventory])
 
   return (
     <Button
@@ -46,11 +35,11 @@ export function AddToCart({ product }: Props) {
       className={clsx({
         'hover:opacity-90': true,
       })}
-      disabled={disabled || isLoading}
+      disabled={disabled}
       onClick={addToCart}
       type="submit"
     >
-      Add To Cart
+      {isLoading ? 'Adding…' : 'Add To Cart'}
     </Button>
   )
 }

@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button'
-import clsx from 'clsx'
-import { ShoppingCart } from 'lucide-react'
-import React from 'react'
+
+import { CartBadge } from './CartBadge'
 
 export function OpenCartButton({
   className,
@@ -23,7 +22,7 @@ export function OpenCartButton({
       {quantity ? (
         <>
           <span>•</span>
-          <span>{quantity}</span>
+          <CartBadge />
         </>
       ) : null}
     </Button>

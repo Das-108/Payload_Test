@@ -768,14 +768,15 @@ export interface Form {
 export interface Address {
   id: number;
   tenant?: (number | null) | Tenant;
+  /**
+   * The account that owns this address
+   */
+  user?: (number | null) | User;
   name: string;
   line1: string;
   line2?: string | null;
   city: string;
   state?: string | null;
-  zip?: string | null;
-  country: string;
-  user: number | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -1286,14 +1287,12 @@ export interface ProductsSelect<T extends boolean = true> {
  */
 export interface AddressesSelect<T extends boolean = true> {
   tenant?: T;
+  user?: T;
   name?: T;
   line1?: T;
   line2?: T;
   city?: T;
   state?: T;
-  zip?: T;
-  country?: T;
-  user?: T;
   updatedAt?: T;
   createdAt?: T;
 }

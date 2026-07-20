@@ -1,4 +1,4 @@
-import { OrderStatus as StatusOptions } from '@/payload-types'
+type StatusOptions = 'pending' | 'processing' | 'completed' | 'cancelled' | string
 import { cn } from '@/utilities/cn'
 
 type Props = {

@@ -1,5 +1,6 @@
 'use client'
-import { useEffect, useRef } from 'react'
+
+import { DependencyList, useEffect, useRef } from 'react'
 
 /**
  * useIgnoredEffect
@@ -9,8 +10,8 @@ import { useEffect, useRef } from 'react'
  */
 export function useIgnoredEffect(
   effect: () => void | (() => void),
-  triggerDeps: any[],
-  ignoredDeps: any[],
+  triggerDeps: DependencyList,
+  ignoredDeps: DependencyList,
 ) {
   const ignoredDepsRef = useRef(ignoredDeps)
 

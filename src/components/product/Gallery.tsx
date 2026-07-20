@@ -29,7 +29,8 @@ export const Gallery: React.FC<Props> = ({ gallery }) => {
     const values = Array.from(searchParams.values())
 
     if (values && api) {
-      const index = gallery.findIndex((item) => {
+      const index = gallery.findIndex((item: any) => {
+        // 1. Cast item as any here
         if (!item.variantOption) return false
 
         let variantID: DefaultDocumentIDType

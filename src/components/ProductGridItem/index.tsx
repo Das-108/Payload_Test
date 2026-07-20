@@ -15,14 +15,6 @@ export const ProductGridItem: React.FC<Props> = ({ product, tenantSlug }) => {
 
   let price = priceInUSD
 
-  const variants = product.variants?.docs
-  if (variants && variants.length > 0) {
-    const variant = variants[0]
-    if (variant && typeof variant === 'object' && variant?.priceInUSD && typeof variant.priceInUSD === 'number') {
-      price = variant.priceInUSD
-    }
-  }
-
   const image = gallery?.[0]?.image && typeof gallery[0]?.image !== 'string' ? gallery[0]?.image : false
   const href = tenantSlug ? `/products/${product.slug}` : `/products/${product.slug}`
 

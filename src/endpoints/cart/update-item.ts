@@ -13,13 +13,16 @@ export const updateItemHandler: PayloadHandler = async (req) => {
     const body = typeof req.json === 'function' ? await req.json() : (req as any).body
     const { productId, quantity } = body
 
-    if (!productId || quantity === undefined) {
+    if (productId === undefined || quantity === undefined) {
       return Response.json({ error: 'Missing productId or quantity parameters' }, { status: 400 })
     }
 
     const updatedCart = await updateItemQuantity(req.payload, req.user.id, tenant.id, productId, Number(quantity))
     return Response.json({ success: true, cart: updatedCart }, { status: 200 })
   } catch (error: any) {
+    if (error.message === 'ITEM_NOT_FOUND_IN_CART') {
+      return Response.json({ error: 'The requested product is not in your cart' }, { status: 404 })
+    }
     return Response.json({ error: error.message }, { status: 500 })
   }
 }

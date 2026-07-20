@@ -9,8 +9,13 @@ export const adminOrSelf: Access = ({ req: { user } }) => {
     return true
   }
 
-  if (user.tenant) {
-    const tenantId = typeof user.tenant === 'object' ? user.tenant.id : user.tenant
+  if (user.tenants) {
+    const tenantId =
+      Array.isArray(user.tenants) && user.tenants.length > 0
+        ? typeof user.tenants[0].tenant === 'object'
+          ? user.tenants[0].tenant.id
+          : user.tenants[0].tenant
+        : null
 
     // Explicitly typing this as 'Where' usually clears the "index signature" error
     const query: Where = {

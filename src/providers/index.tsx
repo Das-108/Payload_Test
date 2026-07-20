@@ -3,9 +3,11 @@ import { EcommerceProvider } from '@payloadcms/plugin-ecommerce/client/react'
 import { stripeAdapterClient } from '@payloadcms/plugin-ecommerce/payments/stripe'
 import React from 'react'
 
+
 import { HeaderThemeProvider } from './HeaderTheme'
 import { ThemeProvider } from './Theme'
 import { SonnerProvider } from '@/providers/Sonner'
+import { CartProvider } from './CartProvider'
 
 export const Providers: React.FC<{
   children: React.ReactNode
@@ -26,11 +28,7 @@ export const Providers: React.FC<{
                     title: true,
                     gallery: true,
                     inventory: true,
-                  },
-                  variants: {
-                    title: true,
-                    inventory: true,
-                  },
+                  },                  
                 },
               },
             }}
@@ -40,7 +38,9 @@ export const Providers: React.FC<{
               }),
             ]}
           >
+            <CartProvider >
             {children}
+            </CartProvider>
           </EcommerceProvider>
         </HeaderThemeProvider>
       </AuthProvider>
