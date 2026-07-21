@@ -8,37 +8,54 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ data, tenant }) => {
-  // Fallback if no footer is created yet in the Admin panel
-  if (!data) {
-    return (
-      <footer className="p-8 mt-auto border-t bg-gray-50 text-center">
-        <p>© {new Date().getFullYear()} {tenant?.name}. Please set up Footer in Admin.</p>
-      </footer>
-    )
-  }
+  const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="bg-white border-t p-10 mt-auto">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="font-bold text-lg">
-          {tenant?.name}
+    <footer className="w-full border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-zinc-200 dark:border-zinc-800 pb-8 gap-6">
+          <div>
+            <span className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white">
+              {tenant?.name || 'Storefront Platform'}
+            </span>
+            <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">
+              Powered by our dynamic multi-tenant e-commerce core framework.
+            </p>
+          </div>
+          
+          {/* Loop over structural array links injected from Payload */}
+          <nav className="flex flex-wrap gap-x-6 gap-y-2">
+            {data?.navItems && data.navItems.length > 0 ? (
+              data.navItems.map((item: any) => {
+                if (!item?.link?.label) return null
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.link.url || '#'}
+                    className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                  >
+                    {item.link.label}
+                  </Link>
+                )
+              })
+            ) : (
+              <span className="text-xs text-zinc-400 italic">
+                No custom footer footer navigation configured.
+              </span>
+            )}
+          </nav>
         </div>
 
-        <nav className="flex gap-6">
-          {data.navItems?.map((item: any) => (
-            <Link 
-              key={item.id} 
-              href={item.link.url || '#'} 
-              className="text-gray-600 hover:text-black transition-colors"
-            >
-              {item.link.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="text-sm text-gray-400">
-          © {new Date().getFullYear()} All Rights Reserved.
+        {/* Bottom Attributions */}
+        <div className="mt-8 flex flex-col sm:flex-row sm:justify-between text-xs text-zinc-400 dark:text-zinc-500 gap-4">
+          <p>&copy; {currentYear} {tenant?.name || 'Platform'}. All rights reserved.</p>
+          <div className="flex space-x-4">
+            <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+            <Link href="/terms" className="hover:underline">Terms of Service</Link>
+          </div>
         </div>
+
       </div>
     </footer>
   )
